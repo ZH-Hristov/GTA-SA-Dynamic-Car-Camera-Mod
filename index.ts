@@ -43,12 +43,16 @@ const settings = new SettingList({
     Right_Offset: {type: modSettingType.number, value: -0.2, min: -20, max: 20, default: -0.2},
     Cam_Rotate_Restore_Time: {type: modSettingType.number, value: 2, min: 0.5, max: 5, default: 2},
     Cam_Rotate_Sensitivity: {type: modSettingType.number, value: 0.4, min: 0.1, max: 5, default: 0.4},
-    Drift_Cam_Lower: {type: modSettingType.number, value: 1.2, min: -10, max: 10, default: 1.2},
     FOV_Min: {type: modSettingType.number, value: 65, min: 10, max: 180, default: 65},
     FOV_Max: {type: modSettingType.number, value: 90, min: 10, max: 180, default: 90},
 
+    Crash_Shake_Enabled: {type: modSettingType.boolean, value: true, default: true},
+
+    Drift_Max_Tilt: {type: modSettingType.number, value: 0.15, default: 0.15, min: 0, max: 1},
+    Drift_Side_Move: {type: modSettingType.number, value: 2, default: 2, min: 0, max: 5},
+    Drift_Cam_Lower: {type: modSettingType.number, value: 1.2, min: -10, max: 10, default: 1.2},
     Test_Drift_Cam: {type: modSettingType.boolean, value: false, default: false},
-    Test_Drift_LeftRight: {type: modSettingType.number, value: 0, min: -1, max: 1, default: 0}
+    Test_Drift_LeftRight: {type: modSettingType.number, value: 0, min: -1, max: 1, default: 0},
 })
 
 settings.loadFromIni()
@@ -273,7 +277,7 @@ if (char.hasGotWeapon(WeaponType.M4) && Pad.IsButtonPressed(PadId.Pad1, Button.C
         const rightAccel = rightVel - prevRightSpeed
         prevRightSpeed = rightVel
 
-        if (Math.abs(forwAccel) >= 1.8 || rightAccel <= -1.8) {
+        if ( (Math.abs(forwAccel) >= 1.8 || rightAccel <= -1.8) && settings.getValue("Crash_Shake_Enabled") ) {
             crash(forwAccel, rightAccel)
         }
 
@@ -289,7 +293,7 @@ if (char.hasGotWeapon(WeaponType.M4) && Pad.IsButtonPressed(PadId.Pad1, Button.C
 
         if (!car.isInAirProper()) {
             driftRightNormalized = Math.ClampFloat(rightVel / driftRightMaxThreshold, -1, 1)
-            camRoll += driftRightLerp * -0.15
+            camRoll += driftRightLerp * -settings.getValue("Drift_Max_Tilt")
         } else {
             driftRightNormalized = 0
         }
@@ -311,7 +315,7 @@ if (char.hasGotWeapon(WeaponType.M4) && Pad.IsButtonPressed(PadId.Pad1, Button.C
         const ny = noisy.noise2D(shakeTime + 10, shakeTime + 15)
 
         camPos = coords.sub( carForw.mul(settings.getValue("Back_Offset") + xyDimension + forwPerc * 2 - (Math.abs(driftRightLerp) * 1.5) ) )
-        camPos = camPos.sub( carRight.mul(driftRightLerp * 2) )
+        camPos = camPos.sub( carRight.mul(driftRightLerp * settings.getValue("Drift_Side_Move")) )
         camPos = camPos.add( carRight.mul(ny * shakeStrength) )
 
         //We lower the right offset when drifting so it's more centered.
@@ -370,6 +374,9 @@ if (char.hasGotWeapon(WeaponType.M4) && Pad.IsButtonPressed(PadId.Pad1, Button.C
                 } else {
                     Camera.Restore()
                 }
+
+                // resetting this just in case
+                CTIMERA = 0
             }
         }
     }
