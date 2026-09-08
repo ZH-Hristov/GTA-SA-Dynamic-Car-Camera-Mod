@@ -1,0 +1,38 @@
+name: Zip and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Put into foldy
+        run: |
+          mkdir mercurial[mem]
+          # put that shit in there
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='staging' \
+            ./ mercurial[mem]/myproject/
+
+      - name: Zipping it up when im done
+        run: |
+          cd staging
+          zip -r ../release.zip myproject
+
+      - name: Releasing myself all over github
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
