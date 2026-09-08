@@ -207,17 +207,21 @@ function isRestricted(carry: Car) {
 //0A8C: write_memory 0x64BC9F size 4 value 0x90909090 virtual_protect 1
 //0A8C: write_memory 0x64BCA3 size 4 value 0x90909090 virtual_protect 1
 //0A8C: write_memory 0x64BCA7 size 1 value 0x90 virtual_protect 1
+//0A8C: write_memory 0x522423 size 2 value 0x9090 virtual_protect 1
 Memory.Write( 0x64BC9F, 4, 0x90909090, true )
 Memory.Write( 0x64BCA3, 4, 0x90909090, true )
 Memory.Write( 0x64BCA7, 1, 0x90, true )
+Memory.Write( 0x522423, 2, 0x9090, true )
 
 
 let doingDriveBy = false
 async function doDriveBy() {
     if (doingDriveBy) {return}
     doingDriveBy = true
-    Camera.Restore()
+    Camera.RestoreJumpcut()
+    setCamFOV(70)
 
+    //TODO: Add weapon switching
     if (char.hasGotWeapon(WeaponType.M4)) {
         Memory.Write( 0x52161A, 1, 0xE9, true )
         Memory.Write( 0x52161B, 4, 0x000000B3, true )
