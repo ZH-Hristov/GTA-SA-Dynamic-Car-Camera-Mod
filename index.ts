@@ -8,7 +8,7 @@ import { lerp } from "../mercurial[mem]/libs/mathUtils.mts"
 import Noise from "../mercurial[mem]/libs/noise.mts"
 import { easeInQuint, easeInSine, easeInOutSine, easeOutSine } from "../mercurial[mem]/libs/easingStyles.mts"
 import { setCamFOV } from "../mercurial[mem]/libs/camUtils.mts"
-import { CameraMode, VehicleSubclass } from "../.config/sa.enums.mts"
+import { CameraMode, KeyCode, VehicleSubclass, WeaponType } from "../.config/sa.enums.mts"
 import { buttonDict, modSettingType, OnHgMenuButtonClickEvent, registerHgMod, SettingList } from "../mercurial[mem]/merc_interface.mts"
 import { trace } from "../mercurial[mem]/libs/tracingUtils.mts"
 
@@ -201,22 +201,48 @@ function isRestricted(carry: Car) {
     return (restrictedSubClasses[carry.getSubclass()] || restrictedModels[carry.getModel()]) && !exceptionModels[carry.getModel()]
 }
 
+
+// COPIED FROM MANUAL DRIVEBY REMAKE
+// driveby camera movement
+//0A8C: write_memory 0x64BC9F size 4 value 0x90909090 virtual_protect 1
+//0A8C: write_memory 0x64BCA3 size 4 value 0x90909090 virtual_protect 1
+//0A8C: write_memory 0x64BCA7 size 1 value 0x90 virtual_protect 1
+Memory.Write( 0x64BC9F, 4, 0x90909090, true )
+Memory.Write( 0x64BCA3, 4, 0x90909090, true )
+Memory.Write( 0x64BCA7, 1, 0x90, true )
+
+
+let doingDriveBy = false
+async function doDriveBy() {
+    if (doingDriveBy) {return}
+    doingDriveBy = true
+    Camera.Restore()
+
+    if (char.hasGotWeapon(WeaponType.M4)) {
+        Memory.Write( 0x52161A, 1, 0xE9, true )
+        Memory.Write( 0x52161B, 4, 0x000000B3, true )
+        Memory.CallMethod(0x5E6280, Memory.GetPedPointer(char), 1, 0, WeaponType.M4)
+        Task.DriveBy(char, -1 as any, -1 as any, 0, 0, 0, 900, 4, false, 100)
+
+        while (Pad.IsKeyPressed(KeyCode.RightButton) && char.isInAnyCar() && ply.isPlaying()) {
+            await asyncWait(1)
+        }
+
+        char.clearTasks()
+        Memory.Write( 0x52161A, 1, 0x0F, true )
+        Memory.Write( 0x52161B, 4, 0x071887BE, true )
+
+        doingDriveBy = false
+    }
+}
+
 let justExited = false
 async function main() {
 while (true) {
-    if (ply.isPlaying() && char.isInAnyCar() && !isRestricted(char.getCarIsUsing()) && settings.getValue("Cam_Enabled")) {        
+    if (ply.isPlaying() && char.isInAnyCar() && !isRestricted(char.getCarIsUsing()) && settings.getValue("Cam_Enabled") && !Pad.IsKeyPressed(KeyCode.RightButton)) {        
         justExited = true
         const dt = getFrameTime()
         CTIMERA += dt
-
-/*         DRIVEBY TESTING
-if (char.hasGotWeapon(WeaponType.M4) && Pad.IsButtonPressed(PadId.Pad1, Button.Circle)) {
-            //char.setCurrentWeapon(WeaponType.M4)
-            FUNC BELOW SEEMS TO CHANGE THE CURRENT WEAPON
-            Memory.CallMethod(0x5E6280, Memory.GetPedPointer(char), 1, 0, WeaponType.M4)
-        } */
-        
-
 
         const minfo = Mouse.GetMovement()
         if (Math.abs(minfo.deltaX) >= 0.01 || Math.abs(minfo.deltaY) >= 0.01) {
@@ -366,6 +392,10 @@ if (char.hasGotWeapon(WeaponType.M4) && Pad.IsButtonPressed(PadId.Pad1, Button.C
                 Camera.PersistFov(false)
 
                 justExited = false
+
+                if (char.isInAnyCar() && ply.isPlaying() && Pad.IsKeyDown(KeyCode.RightButton)) {
+                    doDriveBy()
+                }
 
                 await asyncWait(10)
 
