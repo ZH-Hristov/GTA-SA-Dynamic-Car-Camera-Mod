@@ -30,7 +30,7 @@ jobs:
       - name: Zip it up when ur done
         run: |
           cd staging
-          zip -r ../release.zip myproject
+          zip -r ../release.zip dynamicCamHg
 
       - name: Release yourself
         uses: softprops/action-gh-release@v2
