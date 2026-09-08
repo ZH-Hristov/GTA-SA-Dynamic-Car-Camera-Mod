@@ -10,6 +10,7 @@ import { easeInQuint, easeInSine, easeInOutSine, easeOutSine } from "../mercuria
 import { setCamFOV } from "../mercurial[mem]/libs/camUtils.mts"
 import { CameraMode, VehicleSubclass } from "../.config/sa.enums.mts"
 import { buttonDict, modSettingType, OnHgMenuButtonClickEvent, registerHgMod, SettingList } from "../mercurial[mem]/merc_interface.mts"
+import { trace } from "../mercurial[mem]/libs/tracingUtils.mts"
 
 
 const CTimer_ms_fTimeStep = Memory.Translate('CTimer::ms_fTimeStep');
@@ -343,13 +344,13 @@ if (char.hasGotWeapon(WeaponType.M4) && Pad.IsButtonPressed(PadId.Pad1, Button.C
         const upOffset = carRight.mul(Math.sin(camRollLerp + camRollAdd))
 
 
-        const rayCast = ColPoint.GetCollisionBetweenPoints( coords.x, coords.y, coords.z, camPos.x, camPos.y, camPos.z, true, true, true, true, true, true, true, true, Memory.GetVehiclePointer(car), 0 )
+        //const rayCast = ColPoint.GetCollisionBetweenPoints( coords.x, coords.y, coords.z, camPos.x, camPos.y, camPos.z, true, true, true, true, true, true, true, true, Memory.GetVehiclePointer(car), 0 )
+        const rayCast = trace.line( coords, camPos, Memory.GetVehiclePointer(car) )
         let finalRayPos = camPos.clone()
         if (rayCast) {
-            const rayHitPos = new Vector3(rayCast.outX, rayCast.outY, rayCast.outZ)
+            const rayHitPos = rayCast.hitPos
             if (!rayHitPos.isZero()) {
-                const normalVec = (coords.sub(camPos)).normalize()
-                finalRayPos = new Vector3(rayCast.outX, rayCast.outY, rayCast.outZ).add(normalVec.mul(0.05))
+                finalRayPos = new Vector3(rayHitPos.x, rayHitPos.y, rayHitPos.z).add(rayCast.normal.mul(0.05))
             }
         }
 
