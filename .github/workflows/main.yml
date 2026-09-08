@@ -17,13 +17,13 @@ jobs:
 
       - name: Put into foldy
         run: |
-          mkdir dynamicCamHg
+          mkdir staging
           # put that shit in there
           rsync -av \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='staging' \
-            ./ dynamicCamHg/myproject/
+            ./ staging/dynamicCamHg/
 
       - name: Zipping it up when im done
         run: |
