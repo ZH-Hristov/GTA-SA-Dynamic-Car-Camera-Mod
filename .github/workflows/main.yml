@@ -17,13 +17,13 @@ jobs:
 
       - name: Put into foldy
         run: |
-          mkdir mercurial[mem]
+          mkdir dynamicCamHg
           # put that shit in there
           rsync -av \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='staging' \
-            ./ mercurial[mem]/myproject/
+            ./ dynamicCamHg/myproject/
 
       - name: Zipping it up when im done
         run: |
