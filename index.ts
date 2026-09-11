@@ -41,6 +41,7 @@ const settings = new SettingList({
     Cam_Enabled: {type: modSettingType.boolean, value: true, default: true},
     Height_Offset: {type: modSettingType.number, value: 1, min: -20, max: 20, default: 1},
     Back_Offset: {type: modSettingType.number, value: 2, min: -30, max: 30, default: 2},
+    Back_Offset_Speed: {type: modSettingType.number, value: 2, min: -30, max: 30, default: 2},
     Right_Offset: {type: modSettingType.number, value: -0.2, min: -20, max: 20, default: -0.2},
     Cam_Rotate_Restore_Time: {type: modSettingType.number, value: 2, min: 0.5, max: 5, default: 2},
     Cam_Rotate_Sensitivity: {type: modSettingType.number, value: 0.4, min: 0.1, max: 5, default: 0.4},
@@ -436,7 +437,7 @@ while (true) {
         const nx = noisy.noise2D(shakeTime, shakeTime + 5)
         const ny = noisy.noise2D(shakeTime + 10, shakeTime + 15)
 
-        camPos = coords.sub( carForw.mul(settings.getValue("Back_Offset") + xyDimension + forwPerc * 2 - (Math.abs(driftRightLerp) * 1.5) ) )
+        camPos = coords.sub( carForw.mul(settings.getValue("Back_Offset") + xyDimension + forwPerc * settings.getValue("Back_Offset_Speed") - (Math.abs(driftRightLerp) * 1.5) ) )
         camPos = camPos.sub( carRight.mul(driftRightLerp * settings.getValue("Drift_Side_Move")) )
         camPos = camPos.add( carRight.mul(ny * shakeStrength) )
 
