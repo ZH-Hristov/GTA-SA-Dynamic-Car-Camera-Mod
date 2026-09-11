@@ -2,6 +2,8 @@
 Completely overhauls the car camera in San Andreas.
 Drift cam, camera shake, crash shake, speed FOV increase, etc.
 
+Also implements manual driveby.
+
 ## Requirements
 [CLEO Redux Mercurial Library](https://github.com/ZH-Hristov/CLEO-Redux-Mercurial-Library)  
 **This also includes all of Mercurial Library's requirements!**
@@ -20,3 +22,12 @@ Download the mod from releases and put dynamicCamHg from the archive into your C
 ## Editing settings in-game
 Open the Hg Menu by pressing Tilde (`) on your keyboard. From there you can select the mod and edit the settings in there. You can also save all the changes to the .INI file or reset all values to defaults.  
 Press Tilde again to close the menu. It might take 2-3 seconds to close (ImGuiRedux bug, can't fix it by myself).
+
+## Driveby
+Press E to switch weapon in car.
+Press RMB to aim freely while in a car.
+Press LMB to shoot.
+
+### Controller bindings (UNFINISHED)
+Press R2/RT to cycle through weapons.
+Press Circle/B to aim and shoot.
