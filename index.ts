@@ -8,7 +8,7 @@ import { lerp } from "../mercurial[mem]/libs/mathUtils.mts"
 import Noise from "../mercurial[mem]/libs/noise.mts"
 import { easeInQuint, easeInSine, easeInOutSine, easeOutSine } from "../mercurial[mem]/libs/easingStyles.mts"
 import { setCamFOV } from "../mercurial[mem]/libs/camUtils.mts"
-import { CameraMode, KeyCode, VehicleSubclass, WeaponType } from "../.config/sa.enums.mts"
+import { Button, CameraMode, KeyCode, PadId, VehicleSubclass, WeaponSlot, WeaponType } from "../.config/sa.enums.mts"
 import { buttonDict, modSettingType, OnHgMenuButtonClickEvent, registerHgMod, SettingList } from "../mercurial[mem]/merc_interface.mts"
 import { trace } from "../mercurial[mem]/libs/tracingUtils.mts"
 
@@ -208,42 +208,121 @@ function isRestricted(carry: Car) {
 //0A8C: write_memory 0x64BCA3 size 4 value 0x90909090 virtual_protect 1
 //0A8C: write_memory 0x64BCA7 size 1 value 0x90 virtual_protect 1
 //0A8C: write_memory 0x522423 size 2 value 0x9090 virtual_protect 1
-Memory.Write( 0x64BC9F, 4, 0x90909090, true )
-Memory.Write( 0x64BCA3, 4, 0x90909090, true )
-Memory.Write( 0x64BCA7, 1, 0x90, true )
-Memory.Write( 0x522423, 2, 0x9090, true )
 
+function driveByCamControl(yes: boolean) {
+    if (yes) {
+        Memory.Write( 0x64BC9F, 4, 0x90909090, true )
+        Memory.Write( 0x64BCA3, 4, 0x90909090, true )
+        Memory.Write( 0x64BCA7, 1, 0x90, true )
+        Memory.Write( 0x522423, 2, 0x9090, true )
+    } else {
+        Memory.Write( 0x64BC9F, 4, -812973974, true )
+        Memory.Write( 0x64BCA3, 4, -106510104, true )
+        Memory.Write( 0x64BCA7, 1, -1, true )
+        Memory.Write( 0x522423, 2, 26228, true )
+    }
+}
 
 let doingDriveBy = false
 async function doDriveBy() {
     if (doingDriveBy) {return}
     doingDriveBy = true
+    driveByCamControl(true)
     Camera.RestoreJumpcut()
     setCamFOV(70)
 
-    //TODO: Add weapon switching
-    if (char.hasGotWeapon(WeaponType.M4)) {
-        Memory.Write( 0x52161A, 1, 0xE9, true )
-        Memory.Write( 0x52161B, 4, 0x000000B3, true )
-        Memory.CallMethod(0x5E6280, Memory.GetPedPointer(char), 1, 0, WeaponType.M4)
-        Task.DriveBy(char, -1 as any, -1 as any, 0, 0, 0, 900, 4, false, 100)
+    Memory.Write( 0x52161A, 1, 0xE9, true )
+    Memory.Write( 0x52161B, 4, 0x000000B3, true )
+    //this task doesn't seem to actually do anything here in the car, EXCEPT that it actually makes us aim to the front when entering driveby lol
+    //so yeah weird fix for the cam jumping to a random direction
+    Task.AimGunAtCoord(char, 0, 0, 0, 0)
+    Task.DriveBy(char, -1 as any, -1 as any, 0, 0, 0, 900, 4, false, 1)
+    const curWep = char.getCurrentWeapon()
 
-        while (Pad.IsKeyPressed(KeyCode.RightButton) && char.isInAnyCar() && ply.isPlaying()) {
-            await asyncWait(1)
+    while (Pad.IsKeyPressed(KeyCode.RightButton) && char.isInAnyCar() && ply.isPlaying() && char.getAmmoInWeapon(curWep) > 0) {
+        await asyncWait(1)
+    }
+
+    char.clearTasks()
+    Memory.Write( 0x52161A, 1, 0x0F, true )
+    Memory.Write( 0x52161B, 4, 0x071887BE, true )
+
+    doingDriveBy = false
+    driveByCamControl(false)
+}
+
+function canDriveBy(): boolean {
+    const curWep = char.getCurrentWeapon()
+    const curAmmo = char.getAmmoInWeapon(curWep)
+    if (curAmmo <= 0) {return false}
+
+    if (char.isInAnyCar() && ply.isPlaying() && isDriveByKeyPressed()) {return true}
+    return false
+}
+
+async function switchWeaponInCar(newWep: WeaponType) {
+    Memory.CallMethod(0x5E6280, Memory.GetPedPointer(char), 1, 0, newWep)
+}
+
+const validWeaponSlots = [
+    WeaponSlot.Handgun,
+    WeaponSlot.Shotgun,
+    WeaponSlot.Smg,
+    WeaponSlot.Rifle
+]
+
+const validWeaponSlotsSet = {
+    [WeaponSlot.Handgun]: true,
+    [WeaponSlot.Shotgun]: true,
+    [WeaponSlot.Smg]: true,
+    [WeaponSlot.Rifle]: true
+}
+
+function getValidWeaponForSwitch(): WeaponType|undefined {
+    const curWepType = char.getCurrentWeapon()
+    const curWepSlot = Weapon.GetSlot(curWepType)
+
+    let startSearchSlot = -1
+    let foundWeaponType
+
+    for (const valWepSlot of validWeaponSlots) {
+        if (curWepSlot == valWepSlot) {
+            startSearchSlot = curWepSlot
+            break
+        }
+    }
+
+    // loop over
+    if (startSearchSlot == WeaponSlot.Rifle) {startSearchSlot = -1}
+
+    for (let i = startSearchSlot; i < WeaponSlot.Rifle + 1; i++) {
+        if (!validWeaponSlotsSet.hasOwnProperty(i + 1)) {
+            continue
         }
 
-        char.clearTasks()
-        Memory.Write( 0x52161A, 1, 0x0F, true )
-        Memory.Write( 0x52161B, 4, 0x071887BE, true )
+        const curWep = char.getWeaponInSlot(i + 2)
+        if (curWep.weaponAmmo > 0) {
+            foundWeaponType = curWep.weaponType
+            break
+        }
+    }
 
-        doingDriveBy = false
+    return foundWeaponType
+}
+
+function isDriveByKeyPressed(): boolean {
+    if (Pad.GetControllerMode() == 0) {
+        return Pad.IsKeyPressed(KeyCode.RightButton)
+    } else {
+        return Pad.IsButtonPressed(PadId.Pad1, Button.Circle)
     }
 }
 
 let justExited = false
+let justEntered = true
 async function main() {
 while (true) {
-    if (ply.isPlaying() && char.isInAnyCar() && !isRestricted(char.getCarIsUsing()) && settings.getValue("Cam_Enabled") && !Pad.IsKeyPressed(KeyCode.RightButton)) {        
+    if (ply.isPlaying() && char.isInAnyCar() && !isRestricted(char.getCarIsUsing()) && settings.getValue("Cam_Enabled") && !isDriveByKeyPressed() ) {        
         justExited = true
         const dt = getFrameTime()
         CTIMERA += dt
@@ -274,6 +353,18 @@ while (true) {
         const carRightOG = getCarRightVector(car)
 
         const angleLagT = 1 - Math.exp(-2.0 * dt)
+
+        if (Pad.IsButtonJustPressed(PadId.Pad1, Button.RightShoulder2)) {
+            const newWep = getValidWeaponForSwitch()
+            if(newWep) {
+                switchWeaponInCar(newWep)
+            }
+        }
+
+        if (justEntered) {
+            carForw = carForwOG.clone()
+            carRight = carRightOG.clone()
+        }
 
         if (controlDecay >= 1) {
             if (!car.isInAirProper()) {
@@ -308,7 +399,7 @@ while (true) {
         const rightAccel = rightVel - prevRightSpeed
         prevRightSpeed = rightVel
 
-        if ( (Math.abs(forwAccel) >= 1.8 || rightAccel <= -1.8) && settings.getValue("Crash_Shake_Enabled") ) {
+        if ( (Math.abs(forwAccel) >= 1.8 || rightAccel <= -1.8) && settings.getValue("Crash_Shake_Enabled") && !justEntered ) {
             crash(forwAccel, rightAccel)
         }
 
@@ -388,7 +479,7 @@ while (true) {
 
         Camera.SetFixedPosition(finalRayPos.x, finalRayPos.y, finalRayPos.z, upOffset.x, upOffset.y, upOffset.z)
         Camera.PointAtPoint(camForw.x, camForw.y, camForw.z, 2)
-        
+        justEntered = false
     } else {
         if (camActive) {
             if (justExited) {
@@ -396,8 +487,9 @@ while (true) {
                 Camera.PersistFov(false)
 
                 justExited = false
+                justEntered = true
 
-                if (char.isInAnyCar() && ply.isPlaying() && Pad.IsKeyDown(KeyCode.RightButton)) {
+                if (canDriveBy()) {
                     doDriveBy()
                 }
 
