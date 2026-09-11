@@ -1,3 +1,17 @@
+
+// FOR LATER TESTING
+/* CCam& activeCamera = TheCamera.m_aCams[TheCamera.m_nActiveCam];
+
+activeCamera.m_vecSource = source;
+activeCamera.m_vecTargetCoorsForFudgeInter = synchronizedTarget;
+
+TheCamera.m_vecGameCamPos = renderedSource;
+TheCamera.GetPosition() = renderedSource;
+TheCamera.m_mCameraMatrix.GetPosition() = renderedSource;
+
+TheCamera.CalculateDerivedValues(false, true);
+TheCamera.CopyCameraMatrixToRWCam(true); */
+
 const ply = new Player(0)
 const char = ply.getChar()
 
@@ -319,6 +333,10 @@ function isDriveByKeyPressed(): boolean {
     }
 }
 
+function errorHandle(e: any) {
+    log( "DYNAMIC CAMERA ERRORED WITH: ", e )
+}
+
 let justExited = false
 let justEntered = true
 async function main() {
@@ -358,7 +376,7 @@ while (true) {
         if (Pad.IsButtonJustPressed(PadId.Pad1, Button.RightShoulder2)) {
             const newWep = getValidWeaponForSwitch()
             if(newWep) {
-                switchWeaponInCar(newWep)
+                switchWeaponInCar(newWep).catch(errorHandle)
             }
         }
 
@@ -401,7 +419,7 @@ while (true) {
         prevRightSpeed = rightVel
 
         if ( (Math.abs(forwAccel) >= 1.8 || rightAccel <= -1.8) && settings.getValue("Crash_Shake_Enabled") && !justEntered ) {
-            crash(forwAccel, rightAccel)
+            crash(forwAccel, rightAccel).catch(errorHandle)
         }
 
         const forwPerc = Math.min(1, forwVel / carSpeedShakeMaxThreshold)
@@ -491,7 +509,7 @@ while (true) {
                 justEntered = true
 
                 if (canDriveBy()) {
-                    doDriveBy()
+                    doDriveBy().catch(errorHandle)
                 }
 
                 await asyncWait(10)
@@ -513,4 +531,4 @@ while (true) {
 
 }
 
-main()
+main().catch(errorHandle)
