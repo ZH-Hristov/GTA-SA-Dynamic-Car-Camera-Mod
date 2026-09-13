@@ -8,14 +8,6 @@ Also implements manual driveby.
 [CLEO Redux Mercurial Library](https://github.com/ZH-Hristov/CLEO-Redux-Mercurial-Library)  
 **This also includes all of Mercurial Library's requirements!**
 
-**FILE AND MEMORY OPERATIONS MUST BE ALLOWED IN YOUR CLEO REDUX CONFIG!**
-To allow them, go to CLEO/.config and open cleo.ini
-Under [Permissions], you should have mem=1 and fs=1 like this:  
-[Permissions]  
-mem=1  
-fs=1  
-
-
 ## Installation
 Download the mod from releases and put dynamicCamHg from the archive into your CLEO folder.
 
